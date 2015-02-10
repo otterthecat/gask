@@ -15,7 +15,8 @@ var blacklist = {
 var taskPath = '/home/user/path/to/gulp/tasks/';
 
 // arguments passed to script start at (zero indexed) 2nd key
-var files = process.argv.slice(2);
+var args = process.argv.slice(2);
+var files = args.length > 0 ? args : ['browserify'];
 
 // array to contain all required dev dependencies
 var taskList = [];
