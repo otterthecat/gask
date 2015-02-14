@@ -15,6 +15,7 @@ var blacklist = {
 var taskPath = '/home/user/path/to/gulp/tasks/';
 
 // arguments passed to script start at (zero indexed) 2nd key
+// if no args passed, default to Browserify
 var args = process.argv.slice(2);
 var files = args.length > 0 ? args : ['browserify'];
 
