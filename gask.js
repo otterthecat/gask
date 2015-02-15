@@ -22,7 +22,7 @@ var files = args.length > 0 ? args : ['browserify'];
 // array to contain all required dev dependencies
 var taskList = [];
 
-var regexReq = /[^require\(\'\"][a-z0-9_-]+(?=[\'\"]\);$)/gim
+var regexReq = /[^require\(\'\"][-_a-z0-9\/\.:]+(?=[\'\"]\)([a-z\.]+)*;$)/gim
 
 // function to remove any duplicates from an array of strings
 var flatten = function(arry){
@@ -40,15 +40,17 @@ var directoryPath = process.cwd() + '/gulp/tasks/';
 var getDependencies = function(){
 	// copy files & update taskList
 	files.forEach(function(item){
+		item = item.indexOf(':') > 0 ? item.replace(':', '-') : item;
 		var content = fs.readFileSync(taskPath + item + '.js', 'utf8');
-		// todo - check if /gulp/tasks/ directories exist
-		// if not, create them
 		fs.writeFileSync(directoryPath + item + '.js', content, 'utf8');
-		taskList = taskList.concat(content.match(regexReq).map(function(item){
-
+		taskList = taskList.concat(content.match(regexReq).map(function(dep){
 			// only return installed modules
-			if(item.indexOf('/') < 0){
-				return item;
+			if(dep.indexOf('/') < 0){
+				return dep;
+			}
+			else {
+				var include = fs.readFileSync(taskPath + dep + '.js', 'utf8');
+				fs.writeFileSync(directoryPath + dep + '.js', include, 'utf8');
 			}
 		}));
 	});
@@ -66,8 +68,14 @@ var installDependencies = function(){
 			return false;
 		}
 
+		console.log(stdout);
 		console.log('Gulp tasks added and package.json updated! Good for you!');
 	});
+}
+
+var handleDependencies = function(){
+	getDependencies();
+	installDependencies();
 }
 
 fs.stat(directoryPath, function(err, data){
@@ -75,21 +83,21 @@ fs.stat(directoryPath, function(err, data){
 
 		if(err.code === 'ENOENT') {
 			console.log('hmmm, seems you don\'t have a task directory set. I\'ll take care of it');
-			exec('mkdir -p ' + directoryPath, function(err){
+			exec('mkdir -p ' + directoryPath + ' && mkdir ' + directoryPath + '../config', function(err){
 				if(err){
 					console.log('Dammit, I failed ', err);
 					return err;
 				}
 				console.log('Completed task directory');
-				getDependencies();
-				installDependencies();
+				handleDependencies();
 			});
 		}
 		else {
-			getDependencies();
-			installDependencies();
+			console.log('Process aborted due to error ', err);
+			return err;
 		}
 	}
-
+	else {
+		handleDependencies();
+	}
 });
-
