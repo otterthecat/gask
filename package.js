@@ -3,9 +3,7 @@
 var readline = require('readline');
 var fs = require('fs');
 
-var git
-
-var package = {
+var pkg = {
 	"name": '',
 	"title": '',
 	"description": '',
@@ -21,33 +19,47 @@ var package = {
 };
 
 var rl = readline.createInterface(process.stdin, process.stdout);
+var queue = [];
 
-
-rl.question('Name of project? ', function(data){
-	package.name = data;
-	package.title = data.charAt(0).toUpperCase() + data.slice(1);
-
-	rl.question('What does this project do? ', function(data){
-		package.description = data;
-
-		rl.question('What is your name? ', function(data){
-			package.author.name = data;
-			package.repository.url = "git@github.com/";
-			package.repository.url += package.author.name + '/';
-			package.repository.url += package.name + '.git';
-
-			rl.question('What is your email? ', function(data){
-				package.author.email = data;
-
-				fs.writeFileSync(process.cwd() + '/package.json', JSON.stringify(package) ,'utf8');
-
-				rl.close();
-			});
+var askNextQuestion = function(){
+	if(queue.length > 0){
+		item = queue.shift();
+		rl.question(item.query, function(data){
+			item.callback(data);
+			askNextQuestion();
 		});
+	}
+	else {
+		fs.writeFileSync(process.cwd() + '/package.json', JSON.stringify(pkg), 'utf8');
+		return rl.close();
+	}
+};
+
+var addQuestion = function(q, c){
+	queue.push({
+		query: q,
+		callback: c
 	});
+};
+
+addQuestion("Name of project? ", function(data){
+	pkg.name = data;
+	pkg.title = data.charAt(0).toUpperCase() + data.slice(1);
 });
 
+addQuestion("What does the project do? ", function(data){
+	pkg.description = data;
+});
 
+addQuestion("What is your name? ", function(data){
+	pkg.author.name = data;
+	pkg.repository.url = "git@github.com/";
+	pkg.repository.url += pkg.author.name + '/';
+	pkg.repository.url += pkg.name + '.git';
+});
 
+addQuestion("What is your email? ", function(data){
+	pkg.author.email = data;
+});
 
-
+askNextQuestion();
